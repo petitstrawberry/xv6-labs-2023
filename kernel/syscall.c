@@ -89,6 +89,7 @@ extern uint64 sys_kill(void);
 extern uint64 sys_exec(void);
 extern uint64 sys_fstat(void);
 extern uint64 sys_chdir(void);
+extern uint64 sys_chroot(void);
 extern uint64 sys_dup(void);
 extern uint64 sys_getpid(void);
 extern uint64 sys_sbrk(void);
@@ -114,6 +115,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_exec]    sys_exec,
 [SYS_fstat]   sys_fstat,
 [SYS_chdir]   sys_chdir,
+[SYS_chroot]  sys_chroot,
 [SYS_dup]     sys_dup,
 [SYS_getpid]  sys_getpid,
 [SYS_sbrk]    sys_sbrk,

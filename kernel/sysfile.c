@@ -431,6 +431,33 @@ sys_chdir(void)
   return 0;
 }
 
+// chdirからほぼそのまま流用
+uint64
+sys_chroot(void)
+{
+  char path[MAXPATH];
+  struct inode *ip;
+  struct proc *p = myproc();
+  
+  begin_op();
+  if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  if(ip->type != T_DIR){
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+  iunlock(ip);
+  iput(p->root);
+  end_op();
+  // rootディレクトリを変更
+  p->root = ip;
+  return 0;
+}
+
 uint64
 sys_exec(void)
 {

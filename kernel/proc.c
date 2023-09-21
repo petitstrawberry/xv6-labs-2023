@@ -55,6 +55,7 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+      p->root = 0;
   }
 }
 
@@ -247,8 +248,9 @@ userinit(void)
   p->trapframe->sp = PGSIZE;  // user stack pointer
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
-  p->cwd = namei("/");
 
+  p->root = namei("/"); // 初期のプロセスは本来のルートディレクトリ
+  p->cwd = namei("/");
   p->state = RUNNABLE;
 
   release(&p->lock);
@@ -307,6 +309,7 @@ fork(void)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
+  np->root = idup(p->root); // 親プロセスのルートディレクトリを引き継ぐ
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
@@ -362,8 +365,10 @@ exit(int status)
 
   begin_op();
   iput(p->cwd);
+  iput(p->root); // drop ref
   end_op();
   p->cwd = 0;
+  p->root = 0; // 未設定に
 
   acquire(&wait_lock);
 

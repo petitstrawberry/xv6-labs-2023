@@ -652,11 +652,18 @@ static struct inode*
 namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
+  struct proc *proc = myproc();
 
   if(*path == '/')
-    ip = iget(ROOTDEV, ROOTINO);
+    if (proc != 0 && proc->root != 0)
+      // procが存在して, proc->rootが設定ずみの時,
+      // proc->rootをルートディレクトリとする.
+      ip = idup(proc->root);
+    else
+      // 正真正銘のルートディレクトリのinode
+      ip = iget(ROOTDEV, ROOTINO);
   else
-    ip = idup(myproc()->cwd);
+    ip = idup(proc->cwd);
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
@@ -673,7 +680,17 @@ namex(char *path, int nameiparent, char *name)
       iunlockput(ip);
       return 0;
     }
-    iunlockput(ip);
+    iunlock(ip); // iputをバラした
+
+    if (ip == proc->root && namecmp(name, "..") == 0) {
+      // 参照したディレクトリのinodeがproc->rootであり,
+      // ディレクトリから探したnameが"..", つまり上位ディレクトリを示す時
+      // これ以上次のディレクトリを参照させない. (ip = proc->rootのままbreakして返す)
+      // proc->rootより上層へ参照させない
+      break;
+    }
+    // バラしたiput
+    iput(ip);
     ip = next;
   }
   if(nameiparent){
