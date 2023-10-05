@@ -105,4 +105,5 @@ struct proc {
   struct inode *cwd;           // Current directory
   struct inode *root;          // Root directory
   char name[16];               // Process name (debugging)
+  char cwd_path[MAXPATH];      // Path of current directory
 };
