@@ -4,6 +4,7 @@
 #include "riscv.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pid_ns.h"
 #include "defs.h"
 
 struct cpu cpus[NCPU];
@@ -13,7 +14,7 @@ struct proc proc[NPROC];
 struct proc *initproc;
 
 int nextpid = 1;
-struct spinlock pid_lock;
+// struct spinlock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -48,8 +49,8 @@ void
 procinit(void)
 {
   struct proc *p;
-  
-  initlock(&pid_lock, "nextpid");
+
+  // initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
@@ -91,14 +92,14 @@ myproc(void)
 }
 
 int
-allocpid()
+allocpid(struct pid_ns *ns)
 {
   int pid;
   
-  acquire(&pid_lock);
-  pid = nextpid;
-  nextpid = nextpid + 1;
-  release(&pid_lock);
+  acquire(&ns->pid_lock);
+  pid = ns->nextpid;
+  ns->nextpid = ns->nextpid + 1;
+  release(&ns->pid_lock);
 
   return pid;
 }
@@ -108,7 +109,7 @@ allocpid()
 // and return with p->lock held.
 // If there are no free procs, or a memory allocation fails, return 0.
 static struct proc*
-allocproc(void)
+allocproc(struct pid_ns *ns)
 {
   struct proc *p;
 
@@ -123,8 +124,9 @@ allocproc(void)
   return 0;
 
 found:
-  p->pid = allocpid();
+  p->pid = allocpid(ns);
   p->state = USED;
+  p->ns = ns;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -170,6 +172,9 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  p->ns = 0;
+  p->child_pid_ns = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -234,8 +239,10 @@ void
 userinit(void)
 {
   struct proc *p;
+  struct pid_ns *ns;
 
-  p = allocproc();
+  ns = allocpid_ns();
+  p = allocproc(ns);
   initproc = p;
   
   // allocate one user page and copy initcode's instructions
@@ -252,6 +259,8 @@ userinit(void)
   p->root = namei("/"); // 初期のプロセスは本来のルートディレクトリ
   p->cwd = namei("/");
   p->state = RUNNABLE;
+
+  p->child_pid_ns = ns;
 
   release(&p->lock);
 }
@@ -286,7 +295,7 @@ fork(void)
   struct proc *p = myproc();
 
   // Allocate process.
-  if((np = allocproc()) == 0){
+  if((np = allocproc(p->child_pid_ns)) == 0){
     return -1;
   }
 
@@ -310,6 +319,10 @@ fork(void)
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
   np->root = idup(p->root); // 親プロセスのルートディレクトリを引き継ぐ
+
+  // 親プロセスに設定されているchild_pid_nsでnamespaceを設定
+  np->ns = p->child_pid_ns;
+  np->child_pid_ns = np->ns;
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
@@ -599,7 +612,7 @@ kill(int pid)
 
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);
-    if(p->pid == pid){
+    if(myproc()->ns == p->ns && p->pid == pid){
       p->killed = 1;
       if(p->state == SLEEPING){
         // Wake process from sleep().

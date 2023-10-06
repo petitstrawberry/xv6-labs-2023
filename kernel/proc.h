@@ -105,4 +105,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   struct inode *root;          // Root directory
   char name[16];               // Process name (debugging)
+
+  struct pid_ns *ns;            // pid namespace
+  struct pid_ns *child_pid_ns;  // Child pid namespace
 };
