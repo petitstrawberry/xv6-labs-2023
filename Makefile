@@ -178,6 +178,7 @@ UPROGS=\
 	$U/_cat\
 	$U/_chroot\
 	$U/_chroottest\
+	$U/_container\
 	$U/_echo\
 	$U/_forktest\
 	$U/_grep\
@@ -187,6 +188,7 @@ UPROGS=\
 	$U/_ls\
 	$U/_mkdir\
 	$U/_pingpong\
+	$U/_ps\
 	$U/_rm\
 	$U/_sh\
 	$U/_stressfs\
@@ -265,7 +267,8 @@ endif
 
 UEXTRA=
 ifeq ($(LAB),util)
-	UEXTRA += user/xargstest.sh
+	UEXTRA += user/xargstest.sh\
+	user/make-container.sh
 endif
 
 
