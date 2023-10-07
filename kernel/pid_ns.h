@@ -1,4 +1,3 @@
-#define NPID_NS 64
 
 enum pid_ns_state { PID_NS_UNUSED, PID_NS_USED };
 

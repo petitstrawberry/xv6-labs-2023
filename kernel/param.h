@@ -1,3 +1,4 @@
+#define NPID_NS      64  // maximum number of pid namespaces
 #define NPROC        64  // maximum number of processes
 #define NCPU          8  // maximum number of CPUs
 #define NOFILE       16  // open files per process
