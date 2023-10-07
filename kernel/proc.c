@@ -128,6 +128,38 @@ found:
   p->state = USED;
   p->ns = ns;
 
+  struct proctable *tbl = allocproctbl(ns);
+  if (tbl == 0) {
+      freeproc(p);
+      release(&p->lock);
+      return 0;
+  }
+
+  tbl->pid = p->pid;
+  tbl->state = PID_NS_USED;
+  tbl->proc = p;
+
+  struct pid_ns *parent = p->ns->parent;
+  
+  while (parent > 0)
+  {
+      struct proctable *tbl = allocproctbl(parent);
+      if (tbl == 0) {
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+      }
+
+
+      tbl->pid = allocpid(parent);
+      tbl->state = PID_NS_USED;
+      tbl->proc = p;
+
+      printf("pid: %d, proc: %p\n", tbl->pid, tbl->proc);
+
+      parent = parent->parent;
+  }
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -148,6 +180,7 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+
 
   return p;
 }
@@ -172,6 +205,8 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  freeproctbl(p->ns, p);
 
   p->ns = 0;
   p->child_pid_ns = 0;
@@ -294,6 +329,8 @@ fork(void)
   struct proc *np;
   struct proc *p = myproc();
 
+  pid = p->ns->nextpid;
+
   // Allocate process.
   if((np = allocproc(p->child_pid_ns)) == 0){
     return -1;
@@ -325,8 +362,6 @@ fork(void)
   np->child_pid_ns = np->ns;
 
   safestrcpy(np->name, p->name, sizeof(p->name));
-
-  pid = np->pid;
 
   release(&np->lock);
 

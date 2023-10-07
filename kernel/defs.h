@@ -113,6 +113,8 @@ void            procdump(void);
 // pid_ns.c
 void            pid_nsinit(void);
 struct pid_ns   *allocpid_ns(void);
+struct proctable* allocproctbl(struct pid_ns*);
+void            freeproctbl(struct pid_ns*, struct proc*);
 // swtch.S
 void            swtch(struct context*, struct context*);
 

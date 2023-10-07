@@ -24,6 +24,13 @@ void pid_nsinit(void) {
         n->nsid = 0;
         n->state = PID_NS_UNUSED;
         n->nextpid = 1;
+        n->parent = 0;
+        int i;
+        for (i = 0; i < NPROCTBL; i++) {
+            n->proctbl->pid = 0;
+            n->proctbl->proc = 0;
+            n->proctbl->state = PID_NS_UNUSED;
+        }
     }
 }
 
@@ -60,6 +67,52 @@ found:
     initlock(&ns->pid_lock, "nextpid");
 
     return ns;
+}
+
+struct proctable *allocproctbl(struct pid_ns *ns) {
+    struct proctable *tbl;
+
+    for (tbl = ns->proctbl; tbl < &ns->proctbl[NPROCTBL]; tbl++) {
+        acquire(&ns->lock);
+        if (tbl->state == PID_NS_UNUSED) {
+            goto found;
+        } else {
+            release(&ns->lock);
+        }
+    }
+    return 0;
+
+found:
+    tbl->state = PID_NS_USED;
+    release(&ns->lock);
+
+    return tbl;
+}
+
+void freeproctbl(struct pid_ns *ns, struct proc *proc) {
+    struct proctable *tbl;
+
+    for (tbl = ns->proctbl; tbl < &ns->proctbl[NPROCTBL]; tbl++) {
+        acquire(&ns->lock);
+        if (tbl->proc == proc) {
+            goto found;
+        } else {
+            release(&ns->lock);
+        }
+    }
+    return;
+
+found:
+    tbl->pid = 0;
+    tbl->proc = 0;
+    tbl->state = PID_NS_UNUSED;
+    release(&ns->lock);
+
+    if (ns->parent > 0) {
+        freeproctbl(ns->parent, proc);
+    }
+
+    return;
 }
 
 // static void freepid_ns(struct pid_ns *ns) {
