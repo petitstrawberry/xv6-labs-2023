@@ -10,7 +10,8 @@ struct proctable {
 struct pid_ns {
     struct spinlock lock;
 
-    int nsid;
+    int nsid;   // pid namespace id
+    int ref;    // count of referenced by proc
     enum pid_ns_state state;
     int nextpid;
 
@@ -19,7 +20,4 @@ struct pid_ns {
     struct spinlock pid_lock;
     struct proctable proctbl[NPROCTBL];  // proctable head
 
-    // Not need lock
-    struct pid_ns *child;  // child namespace
-    struct pid_ns *next;   // next namespace in same level
 };

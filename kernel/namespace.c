@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "namespace.h"
 #include "defs.h"
+#include "pid_ns.h"
 
 
 int unshare(int flag) {
@@ -14,6 +15,7 @@ int unshare(int flag) {
         struct pid_ns *ns = allocpid_ns();
 
         if (ns) {
+            ns->parent = proc->ns;
             proc->child_pid_ns = ns;
         }else {
             return -1;

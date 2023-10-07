@@ -178,6 +178,7 @@ UPROGS=\
 	$U/_cat\
 	$U/_chroot\
 	$U/_chroottest\
+	$U/_containertest\
 	$U/_echo\
 	$U/_forktest\
 	$U/_grep\

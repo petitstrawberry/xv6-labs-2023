@@ -14,7 +14,7 @@ struct proc proc[NPROC];
 struct proc *initproc;
 
 int nextpid = 1;
-// struct spinlock pid_lock;
+struct spinlock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -50,7 +50,7 @@ procinit(void)
 {
   struct proc *p;
 
-  // initlock(&pid_lock, "nextpid");
+  initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
@@ -92,16 +92,30 @@ myproc(void)
 }
 
 int
-allocpid(struct pid_ns *ns)
+allocpid()
 {
   int pid;
   
-  acquire(&ns->pid_lock);
-  pid = ns->nextpid;
-  ns->nextpid = ns->nextpid + 1;
-  release(&ns->pid_lock);
+  acquire(&pid_lock);
+  pid = nextpid;
+  nextpid = nextpid + 1;
+  release(&pid_lock);
 
   return pid;
+}
+
+int
+getnspid(struct pid_ns *ns, struct proc *proc)
+{
+    int pid = 0;
+    for (struct proctable *p = ns->proctbl; p < &ns->proctbl[NPROCTBL]; p++) {
+        // printf("real pid: %d, ns_pid: %d\n", p->proc->pid, p->pid);
+        if (p->proc == proc) {
+            pid = p->pid;
+            break;
+        }
+    }
+    return pid;
 }
 
 // Look in the process table for an UNUSED proc.
@@ -124,7 +138,7 @@ allocproc(struct pid_ns *ns)
   return 0;
 
 found:
-  p->pid = allocpid(ns);
+  p->pid = allocpid();
   p->state = USED;
   p->ns = ns;
 
@@ -135,7 +149,7 @@ found:
       return 0;
   }
 
-  tbl->pid = p->pid;
+  tbl->pid = allocnspid(ns);
   tbl->state = PID_NS_USED;
   tbl->proc = p;
 
@@ -150,12 +164,9 @@ found:
         return 0;
       }
 
-
-      tbl->pid = allocpid(parent);
+      tbl->pid = allocnspid(parent);
       tbl->state = PID_NS_USED;
       tbl->proc = p;
-
-      printf("pid: %d, proc: %p\n", tbl->pid, tbl->proc);
 
       parent = parent->parent;
   }
@@ -180,7 +191,6 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
 
   return p;
 }
@@ -644,10 +654,11 @@ int
 kill(int pid)
 {
   struct proc *p;
+  struct pid_ns *ns = myproc()->ns;
 
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);
-    if(myproc()->ns == p->ns && p->pid == pid){
+    if(getnspid(ns, p) == pid){
       p->killed = 1;
       if(p->state == SLEEPING){
         // Wake process from sleep().
