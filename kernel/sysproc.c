@@ -45,7 +45,7 @@ sys_getproclist(void)
 
     for (p = ns->proctbl; p < &ns->proctbl[NPROCTBL]; p++) {
       if (p->state == PID_NS_USED) {
-          printf("%d %s\n", , p->proc->name);
+          printf("%d %s\n", p->pid, p->proc->name);
           // procs[l].name = p->proc->name;
           // procs[l].pid = p->pid;
           // procs[l].state = PID_NS_USED;
