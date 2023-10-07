@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pid_ns.h"
 
 uint64
 sys_exit(void)
@@ -20,6 +21,42 @@ sys_getpid(void)
 {
   struct proc *proc = myproc();
   return getnspid(proc->ns, proc);
+}
+
+
+uint64
+sys_getproclist(void)
+{
+
+    // struct process *procs;
+    // int size;
+
+    // argint(1, &size);
+    // argint(0, (int *)procs);
+
+      
+    struct proc *proc = myproc();
+    struct proctable *p;
+    struct pid_ns *ns = proc->ns;
+
+    // int l = 0;
+
+    printf("PID NAME\n");
+
+    for (p = ns->proctbl; p < &ns->proctbl[NPROCTBL]; p++) {
+      if (p->state == PID_NS_USED) {
+          printf("%d %s\n", , p->proc->name);
+          // procs[l].name = p->proc->name;
+          // procs[l].pid = p->pid;
+          // procs[l].state = PID_NS_USED;
+          // l += 1;
+      }
+      // if (l >= size) {
+      //     break;
+      // }
+    }
+
+  return 0;
 }
 
 uint64
@@ -92,3 +129,4 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+

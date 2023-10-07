@@ -109,3 +109,10 @@ struct proc {
   struct pid_ns *ns;            // pid namespace
   struct pid_ns *child_pid_ns;  // Child pid namespace
 };
+
+// process list for user
+struct process {
+    int pid;
+    char *name;
+    enum procstate state;
+};
