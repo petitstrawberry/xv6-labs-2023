@@ -178,7 +178,6 @@ UPROGS=\
 	$U/_cat\
 	$U/_chroot\
 	$U/_chroottest\
-	$U/_containertest\
 	$U/_echo\
 	$U/_forktest\
 	$U/_grep\
@@ -192,6 +191,8 @@ UPROGS=\
 	$U/_sh\
 	$U/_stressfs\
 	$U/_sleep\
+	$U/_unshare\
+	$U/_unsharetest\
 	$U/_usertests\
 	$U/_grind\
 	$U/_wc\
