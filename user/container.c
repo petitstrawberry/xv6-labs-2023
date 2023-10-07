@@ -7,7 +7,7 @@
 
 #define TEST_DIR "/container"
 
-int container(char* dir) {
+int container(char* dir, char **argv) {
     // Create a test directory
     // if (mkdir(dir) == -1) {
     //     fprintf(2, "Failed to create test directory\n");
@@ -26,10 +26,7 @@ int container(char* dir) {
         return 0;
     }
 
-    char* argv[] = {
-        "/sh",
-        0
-    };
+    
 
     exec(argv[0], argv);
 
@@ -38,8 +35,8 @@ int container(char* dir) {
 
 int main(int argc, char* argv[]) {
     
-    if(argc != 2){
-        fprintf(2, "Usage: container NEWROOT\n");
+    if(argc != 3){
+        fprintf(2, "Usage: container NEWROOT COMMAND [ARGS...]\n");
         exit(1);
     }
 
@@ -54,7 +51,7 @@ int main(int argc, char* argv[]) {
         return 1;
     } else if (pid == 0) {
         // Child process
-        if (container(argv[1])) {
+        if (container(argv[1], &argv[2])) {
             return 0;
         } else {
             return 1;
