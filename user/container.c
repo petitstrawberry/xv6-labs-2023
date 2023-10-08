@@ -3,16 +3,12 @@
 #include "kernel/fcntl.h"
 #include "kernel/param.h"
 #include "kernel/namespace.h"
+#include "kernel/capability.h"
 #include "user/user.h"
 
 #define TEST_DIR "/container"
 
-int container(char* dir, char **argv) {
-    // Create a test directory
-    // if (mkdir(dir) == -1) {
-    //     fprintf(2, "Failed to create test directory\n");
-    //     return 0;
-    // }
+int container(char* dir, char **argv, int privileged) {
 
     // Change root to the test directory
     if (chroot(dir) == -1) {
@@ -26,7 +22,9 @@ int container(char* dir, char **argv) {
         return 0;
     }
 
-    
+    if (!privileged) {
+        capsetp(getpid(), 0);
+    }
 
     exec(argv[0], argv);
 
@@ -35,8 +33,8 @@ int container(char* dir, char **argv) {
 
 int main(int argc, char* argv[]) {
     
-    if(argc != 3){
-        fprintf(2, "Usage: container NEWROOT COMMAND [ARGS...]\n");
+    if(argc < 3){
+        fprintf(2, "Usage: container [--privileged] NEWROOT COMMAND [ARGS...]\n");
         exit(1);
     }
 
@@ -50,8 +48,12 @@ int main(int argc, char* argv[]) {
         fprintf(2, "Failed to fork\n");
         return 1;
     } else if (pid == 0) {
+        int privileged = 0;
+        if (strcmp(argv[1], "--privileged") == 0) {
+            privileged = 1;
+        }
         // Child process
-        if (container(argv[1], &argv[2])) {
+        if (container(argv[1+privileged], &argv[2+privileged], privileged)) {
             return 0;
         } else {
             return 1;

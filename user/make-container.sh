@@ -8,6 +8,7 @@ cat /echo > newroot/echo
 cat /ps > newroot/ps
 cat /mkdir > newroot/mkdir
 cat /rm > newroot/rm
+cat /kill > newroot/kill
 cat /chroot > newroot/chroot
 cat /container > newroot/container
 
