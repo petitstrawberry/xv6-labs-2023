@@ -4,7 +4,9 @@
 #include "riscv.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pid_ns.h"
 #include "defs.h"
+#include "capability.h"
 
 struct cpu cpus[NCPU];
 
@@ -48,7 +50,7 @@ void
 procinit(void)
 {
   struct proc *p;
-  
+
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -103,12 +105,26 @@ allocpid()
   return pid;
 }
 
+int
+getnspid(struct pid_ns *ns, struct proc *proc)
+{
+    int pid = 0;
+    for (struct proctable *p = ns->proctbl; p < &ns->proctbl[NPROCTBL]; p++) {
+        // printf("real pid: %d, ns_pid: %d\n", p->proc->pid, p->pid);
+        if (p->proc == proc) {
+            pid = p->pid;
+            break;
+        }
+    }
+    return pid;
+}
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
 // If there are no free procs, or a memory allocation fails, return 0.
 static struct proc*
-allocproc(void)
+allocproc(struct pid_ns *ns)
 {
   struct proc *p;
 
@@ -125,6 +141,36 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->ns = ns;
+
+  struct proctable *tbl = allocproctbl(ns);
+  if (tbl == 0) {
+      freeproc(p);
+      release(&p->lock);
+      return 0;
+  }
+
+  tbl->pid = allocnspid(ns);
+  tbl->state = PID_NS_USED;
+  tbl->proc = p;
+
+  struct pid_ns *parent = p->ns->parent;
+  
+  while (parent > 0)
+  {
+      struct proctable *tbl = allocproctbl(parent);
+      if (tbl == 0) {
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+      }
+
+      tbl->pid = allocnspid(parent);
+      tbl->state = PID_NS_USED;
+      tbl->proc = p;
+
+      parent = parent->parent;
+  }
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -150,6 +196,13 @@ found:
   return p;
 }
 
+// Get proc by pid
+struct proc* 
+getproc(int pid)
+{ 
+  return getnsproc(myproc()->ns, pid);
+}
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
@@ -170,6 +223,11 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  freeproctbl(p->ns, p);
+
+  p->ns = 0;
+  p->child_pid_ns = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -234,8 +292,10 @@ void
 userinit(void)
 {
   struct proc *p;
+  struct pid_ns *ns;
 
-  p = allocproc();
+  ns = allocpid_ns();
+  p = allocproc(ns);
   initproc = p;
   
   // allocate one user page and copy initcode's instructions
@@ -252,6 +312,9 @@ userinit(void)
   p->root = namei("/"); // 初期のプロセスは本来のルートディレクトリ
   p->cwd = namei("/");
   p->state = RUNNABLE;
+
+  p->child_pid_ns = ns;
+  p->caps = CAP_SYS_CAPSETP | CAP_SYS_CHROOT | CAP_SYS_UNSHARE;
 
   release(&p->lock);
 }
@@ -285,8 +348,10 @@ fork(void)
   struct proc *np;
   struct proc *p = myproc();
 
+  pid = p->ns->nextpid;
+
   // Allocate process.
-  if((np = allocproc()) == 0){
+  if((np = allocproc(p->child_pid_ns)) == 0){
     return -1;
   }
 
@@ -311,9 +376,14 @@ fork(void)
   np->cwd = idup(p->cwd);
   np->root = idup(p->root); // 親プロセスのルートディレクトリを引き継ぐ
 
-  safestrcpy(np->name, p->name, sizeof(p->name));
+  // 親プロセスに設定されているchild_pid_nsでnamespaceを設定
+  np->ns = p->child_pid_ns;
+  np->child_pid_ns = np->ns;
 
-  pid = np->pid;
+  // 親プロセスに設定されているcapsでcapabilityを設定
+  np->caps = p->caps;
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
 
   release(&np->lock);
 
@@ -596,10 +666,11 @@ int
 kill(int pid)
 {
   struct proc *p;
+  struct pid_ns *ns = myproc()->ns;
 
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);
-    if(p->pid == pid){
+    if(getnspid(ns, p) == pid){
       p->killed = 1;
       if(p->state == SLEEPING){
         // Wake process from sleep().

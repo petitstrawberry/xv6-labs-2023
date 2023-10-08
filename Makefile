@@ -14,12 +14,15 @@ OBJS = \
   $K/string.o \
   $K/main.o \
   $K/vm.o \
+  $K/pid_ns.o\
   $K/proc.o \
   $K/swtch.o \
   $K/trampoline.o \
   $K/trap.o \
   $K/syscall.o \
   $K/sysproc.o \
+  $K/sysns.o \
+  $K/syscap.o \
   $K/bio.o \
   $K/fs.o \
   $K/log.o \
@@ -30,7 +33,9 @@ OBJS = \
   $K/sysfile.o \
   $K/kernelvec.o \
   $K/plic.o \
-  $K/virtio_disk.o
+  $K/virtio_disk.o \
+  $K/namespace.o \
+  $K/capability.o \
 
 OBJS_KCSAN = \
   $K/start.o \
@@ -175,6 +180,7 @@ UPROGS=\
 	$U/_cat\
 	$U/_chroot\
 	$U/_chroottest\
+	$U/_container\
 	$U/_echo\
 	$U/_forktest\
 	$U/_grep\
@@ -184,10 +190,13 @@ UPROGS=\
 	$U/_ls\
 	$U/_mkdir\
 	$U/_pingpong\
+	$U/_ps\
 	$U/_rm\
 	$U/_sh\
 	$U/_stressfs\
 	$U/_sleep\
+	$U/_unshare\
+	$U/_unsharetest\
 	$U/_usertests\
 	$U/_grind\
 	$U/_wc\
@@ -260,7 +269,8 @@ endif
 
 UEXTRA=
 ifeq ($(LAB),util)
-	UEXTRA += user/xargstest.sh
+	UEXTRA += user/xargstest.sh\
+	user/make-container.sh
 endif
 
 

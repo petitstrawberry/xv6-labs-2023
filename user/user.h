@@ -23,6 +23,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int unshare(int);
+int getproclist(void);
+int capsetp(int,int);
 
 // ulib.c
 int stat(const char*, struct stat*);

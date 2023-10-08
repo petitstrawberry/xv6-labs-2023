@@ -37,3 +37,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+entry("unshare");
+entry("getproclist");
+entry("capsetp");

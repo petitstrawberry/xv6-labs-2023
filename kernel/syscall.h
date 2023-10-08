@@ -21,3 +21,6 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_chroot 22
+#define SYS_unshare 23
+#define SYS_getproclist 24
+#define SYS_capsetp 25
