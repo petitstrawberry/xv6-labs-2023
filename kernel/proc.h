@@ -91,6 +91,8 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID in namespace
+  int caps;                     // Capabilities
+
   
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
@@ -108,7 +110,6 @@ struct proc {
 
   struct pid_ns *ns;            // pid namespace
   struct pid_ns *child_pid_ns;  // Child pid namespace
-  int caps;                     // Capabilities
 };
 
 // process list for user

@@ -7,8 +7,10 @@
 #include "capability.h"
 
 int capsetp(struct proc *proc, int caps) {
+    acquire(&proc->lock);
     int mask = proc->parent->caps;
     proc->caps = mask & caps;
+    release(&proc->lock);
     return proc->caps;
 }
 
