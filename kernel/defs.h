@@ -18,6 +18,10 @@ void            bwrite(struct buf*);
 void            bpin(struct buf*);
 void            bunpin(struct buf*);
 
+// capability.c
+int             capsetp(struct proc*, int);
+int             checkcap(struct proc*, int);
+
 // console.c
 void            consoleinit(void);
 void            consoleintr(int);
@@ -111,13 +115,16 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             getnspid(struct pid_ns*, struct proc*);
+struct proc*    getproc(int);
 
 // pid_ns.c
 void            pid_nsinit(void);
-struct pid_ns   *allocpid_ns(void);
+struct pid_ns*  allocpid_ns(void);
 int             allocnspid(struct pid_ns* ns);
 struct proctable* allocproctbl(struct pid_ns*);
 void            freeproctbl(struct pid_ns*, struct proc*);
+struct proc*    getnsproc(struct pid_ns*, int);
+
 // swtch.S
 void            swtch(struct context*, struct context*);
 

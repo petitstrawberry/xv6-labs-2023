@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "pid_ns.h"
 #include "defs.h"
+#include "capability.h"
 
 struct cpu cpus[NCPU];
 
@@ -195,6 +196,13 @@ found:
   return p;
 }
 
+// Get proc by pid
+struct proc* 
+getproc(int pid)
+{ 
+  return getnsproc(myproc()->ns, pid);
+}
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
@@ -306,6 +314,7 @@ userinit(void)
   p->state = RUNNABLE;
 
   p->child_pid_ns = ns;
+  p->caps = CAP_SYS_CAPSETP | CAP_SYS_CHROOT | CAP_SYS_UNSHARE;
 
   release(&p->lock);
 }
@@ -370,6 +379,9 @@ fork(void)
   // 親プロセスに設定されているchild_pid_nsでnamespaceを設定
   np->ns = p->child_pid_ns;
   np->child_pid_ns = np->ns;
+
+  // 親プロセスに設定されているcapsでcapabilityを設定
+  np->caps = p->caps;
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 

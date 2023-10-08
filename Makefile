@@ -22,6 +22,7 @@ OBJS = \
   $K/syscall.o \
   $K/sysproc.o \
   $K/sysns.o \
+  $K/syscap.o \
   $K/bio.o \
   $K/fs.o \
   $K/log.o \
@@ -33,7 +34,8 @@ OBJS = \
   $K/kernelvec.o \
   $K/plic.o \
   $K/virtio_disk.o \
-  $K/namespace.o
+  $K/namespace.o \
+  $K/capability.o \
 
 OBJS_KCSAN = \
   $K/start.o \

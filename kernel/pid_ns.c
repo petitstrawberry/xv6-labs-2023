@@ -101,7 +101,19 @@ int allocnspid(struct pid_ns *ns) {
   return pid;
 }
 
+struct proc *getnsproc(struct pid_ns *ns, int pid) {
+    struct proc *proc = 0;
 
+    for (struct proctable *t = ns->proctbl; t < &ns->proctbl[NPROCTBL]; t++)
+    {
+        if (t->pid == pid) {
+            proc = t->proc;
+            break;
+        }
+    }
+
+    return proc;
+}
 
 struct proctable *allocproctbl(struct pid_ns *ns) {
     struct proctable *tbl;

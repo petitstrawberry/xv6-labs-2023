@@ -39,3 +39,4 @@ entry("sleep");
 entry("uptime");
 entry("unshare");
 entry("getproclist");
+entry("capsetp");
