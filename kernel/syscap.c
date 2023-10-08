@@ -5,8 +5,13 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "capability.h"
 
 uint64 sys_capsetp(void) {
+    if (!checkcap(myproc(), CAP_SYS_CAPSETP)) {
+      return -1;
+    }
+
     int pid;
     int flags;
 
