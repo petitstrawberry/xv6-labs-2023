@@ -141,7 +141,7 @@ allocproc(struct pid_ns *ns)
 found:
   p->pid = allocpid();
   p->state = USED;
-  p->ns = ns;
+  p->pid_ns = ns;
 
   struct proctable *tbl = allocproctbl(ns);
   if (tbl == 0) {
@@ -154,7 +154,7 @@ found:
   tbl->state = PID_NS_USED;
   tbl->proc = p;
 
-  struct pid_ns *parent = p->ns->parent;
+  struct pid_ns *parent = p->pid_ns->parent;
   
   while (parent > 0)
   {
@@ -200,7 +200,7 @@ found:
 struct proc* 
 getproc(int pid)
 { 
-  return getnsproc(myproc()->ns, pid);
+  return getnsproc(myproc()->pid_ns, pid);
 }
 
 // free a proc structure and the data hanging from it,
@@ -224,9 +224,9 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->state = UNUSED;
 
-  freeproctbl(p->ns, p);
+  freeproctbl(p->pid_ns, p);
 
-  p->ns = 0;
+  p->pid_ns = 0;
   p->child_pid_ns = 0;
 }
 
@@ -348,7 +348,7 @@ fork(void)
   struct proc *np;
   struct proc *p = myproc();
 
-  pid = p->ns->nextpid;
+  pid = p->pid_ns->nextpid;
 
   // Allocate process.
   if((np = allocproc(p->child_pid_ns)) == 0){
@@ -377,8 +377,8 @@ fork(void)
   np->root = idup(p->root); // 親プロセスのルートディレクトリを引き継ぐ
 
   // 親プロセスに設定されているchild_pid_nsでnamespaceを設定
-  np->ns = p->child_pid_ns;
-  np->child_pid_ns = np->ns;
+  np->pid_ns = p->child_pid_ns;
+  np->child_pid_ns = np->pid_ns;
 
   // 親プロセスに設定されているcapsでcapabilityを設定
   np->caps = p->caps;
@@ -666,7 +666,7 @@ int
 kill(int pid)
 {
   struct proc *p;
-  struct pid_ns *ns = myproc()->ns;
+  struct pid_ns *ns = myproc()->pid_ns;
 
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);

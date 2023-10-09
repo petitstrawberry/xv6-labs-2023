@@ -20,7 +20,7 @@ uint64
 sys_getpid(void)
 {
   struct proc *proc = myproc();
-  return getnspid(proc->ns, proc);
+  return getnspid(proc->pid_ns, proc);
 }
 
 
@@ -37,7 +37,7 @@ sys_getproclist(void)
       
     struct proc *proc = myproc();
     struct proctable *p;
-    struct pid_ns *ns = proc->ns;
+    struct pid_ns *ns = proc->pid_ns;
 
     // int l = 0;
 
