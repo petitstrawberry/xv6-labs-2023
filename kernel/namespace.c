@@ -15,7 +15,7 @@ int unshare(int flag) {
         struct pid_ns *ns = allocpid_ns();
 
         if (ns) {
-            ns->parent = proc->ns;
+            ns->parent = proc->pid_ns;
             proc->child_pid_ns = ns;
         }else {
             return -1;
